@@ -3,6 +3,7 @@ import cors from "cors";
 import dotenv from "dotenv";
 import { db } from "./config/db.js";
 import authRoute from "./routes/authRoute.js";
+import competitionRoute from "./routes/competitionRoute.js";
 
 dotenv.config();
 
@@ -36,6 +37,7 @@ app.get("/", (req, res) => {
 });
 
 app.use(authRoute);
+app.use(competitionRoute);
 
 app.listen(PORT, () => {
   console.log(`Server is running on port ${PORT}`);
