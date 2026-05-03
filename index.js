@@ -2,6 +2,7 @@ import express from "express";
 import cors from "cors";
 import dotenv from "dotenv";
 import { db } from "./config/db.js";
+import authRoute from "./routes/authRoute.js";
 
 dotenv.config();
 
@@ -33,6 +34,8 @@ testDBConnection();
 app.get("/", (req, res) => {
   res.send("Welcome to the OilWeek 2026 API");
 });
+
+app.use(authRoute);
 
 app.listen(PORT, () => {
   console.log(`Server is running on port ${PORT}`);
