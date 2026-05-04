@@ -2,6 +2,8 @@ import { db } from "../config/db.js";
 import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
 import { uploadToCloudinary } from "../utils/uploadCloudinary.js";
+import { getTeamById } from "../models/teamModel.js";
+import { getAllMemberById } from "../models/memberModel.js";
 
 const signToken = (user) => {
   if (!process.env.JWT_SECRET) throw new Error("JWT_SECRET is not set");
@@ -22,6 +24,7 @@ const signToken = (user) => {
 };
 
 const sanitizeUser = (u) => ({
+  id_team_leader: u.id_team_leader,
   name_team_leader: u.name_team_leader,
   major_team_leader: u.major_team_leader,
   email_team_leader: u.email_team_leader,
@@ -153,10 +156,19 @@ export const signIn = async (req, res) => {
       return res.status(401).json({ error: "Invalid password" });
     }
 
+    const team = await getTeamById(user.id_team_leader);
+
+    const member = await getAllMemberById(team.id_team);
+
     // 3) buat token
     const token = signToken(user);
 
-    return res.status(200).json({ user: sanitizeUser(user), token });
+    return res.status(200).json({
+      user: sanitizeUser(user),
+      team: team ? team : [],
+      member: member || [],
+      token,
+    });
   } catch (err) {
     console.error("signIn error:", err);
     return res.status(500).json({ error: "Internal server error" });

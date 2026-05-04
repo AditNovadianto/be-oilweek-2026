@@ -21,6 +21,7 @@ const signToken = (user) => {
 };
 
 const sanitizeUser = (u) => ({
+  id_user: u.id_user,
   name_user: u.name_user,
   email_user: u.email_user,
   id_platform: u.id_platform,

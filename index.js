@@ -7,6 +7,7 @@ import competitionRoute from "./routes/competitionRoute.js";
 import teamLeaderRoute from "./routes/teamLeaderRoute.js";
 import roleRoute from "./routes/roleRoute.js";
 import teamRoute from "./routes/teamRoute.js";
+import memberRoute from "./routes/memberRoute.js";
 
 dotenv.config();
 
@@ -44,6 +45,7 @@ app.use(teamLeaderRoute);
 app.use(competitionRoute);
 app.use(roleRoute);
 app.use(teamRoute);
+app.use(memberRoute);
 
 app.listen(PORT, () => {
   console.log(`Server is running on port ${PORT}`);
