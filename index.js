@@ -5,6 +5,7 @@ import { db } from "./config/db.js";
 import authRoute from "./routes/authRoute.js";
 import competitionRoute from "./routes/competitionRoute.js";
 import teamLeaderRoute from "./routes/teamLeaderRoute.js";
+import roleRoute from "./routes/roleRoute.js";
 
 dotenv.config();
 
@@ -40,6 +41,7 @@ app.get("/", (req, res) => {
 app.use(authRoute);
 app.use(teamLeaderRoute);
 app.use(competitionRoute);
+app.use(roleRoute);
 
 app.listen(PORT, () => {
   console.log(`Server is running on port ${PORT}`);
