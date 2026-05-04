@@ -4,6 +4,7 @@ import dotenv from "dotenv";
 import { db } from "./config/db.js";
 import authRoute from "./routes/authRoute.js";
 import competitionRoute from "./routes/competitionRoute.js";
+import teamLeaderRoute from "./routes/teamLeaderRoute.js";
 
 dotenv.config();
 
@@ -37,6 +38,7 @@ app.get("/", (req, res) => {
 });
 
 app.use(authRoute);
+app.use(teamLeaderRoute);
 app.use(competitionRoute);
 
 app.listen(PORT, () => {
