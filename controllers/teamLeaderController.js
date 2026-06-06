@@ -50,6 +50,10 @@ export const signUp = async (req, res) => {
     student_id_card,
   } = req.body;
 
+  if (!req.files) {
+    return res.status(400).json({ error: "Semua file wajib diupload" });
+  }
+
   const {
     twibbon,
     following_instagram,
@@ -74,22 +78,21 @@ export const signUp = async (req, res) => {
     const hashed = await bcrypt.hash(password_team_leader, 10);
 
     // 3) Upload file ke Cloudinary
-    const twibbonUrl = await uploadToCloudinary(twibbon[0].buffer);
-    const followingInstagramUrl = await uploadToCloudinary(
-      following_instagram[0].buffer,
-    );
-    const followingLinkedinUrl = await uploadToCloudinary(
-      following_linkedin[0].buffer,
-    );
-    const followingTiktokUrl = await uploadToCloudinary(
-      following_tiktok[0].buffer,
-    );
-    const instagramStoryUrl = await uploadToCloudinary(
-      instagram_story[0].buffer,
-    );
-    const repostCompetitionInstagramUrl = await uploadToCloudinary(
-      repost_competition_instagram[0].buffer,
-    );
+    const [
+      twibbonUrl,
+      followingInstagramUrl,
+      followingLinkedinUrl,
+      followingTiktokUrl,
+      instagramStoryUrl,
+      repostCompetitionInstagramUrl,
+    ] = await Promise.all([
+      uploadToCloudinary(twibbon[0].buffer),
+      uploadToCloudinary(following_instagram[0].buffer),
+      uploadToCloudinary(following_linkedin[0].buffer),
+      uploadToCloudinary(following_tiktok[0].buffer),
+      uploadToCloudinary(instagram_story[0].buffer),
+      uploadToCloudinary(repost_competition_instagram[0].buffer),
+    ]);
 
     // 4) insert user
     const [insertRes] = await db.query(
@@ -158,7 +161,7 @@ export const signIn = async (req, res) => {
 
     const team = await getTeamById(user.id_team_leader);
 
-    const member = await getAllMemberById(team.id_team);
+    const member = team ? await getAllMemberById(team.id_team) : [];
 
     // 3) buat token
     const token = signToken(user);

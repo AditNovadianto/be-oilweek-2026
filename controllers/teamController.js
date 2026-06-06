@@ -46,7 +46,7 @@ export const getTeamById = async (req, res) => {
     const team = await teamModel.getTeamById(id_team_leader);
 
     if (!team) {
-      return res.status(404).json({ error: "Team not found" });
+      return res.status(202).json({ error: "Team not found" });
     }
 
     return res.status(200).json({ team });

@@ -2,12 +2,14 @@ import express from "express";
 import cors from "cors";
 import dotenv from "dotenv";
 import { db } from "./config/db.js";
+import { connectMongoDB } from "./config/db_mongo.js";
 import authRoute from "./routes/authRoute.js";
 import competitionRoute from "./routes/competitionRoute.js";
 import teamLeaderRoute from "./routes/teamLeaderRoute.js";
 import roleRoute from "./routes/roleRoute.js";
 import teamRoute from "./routes/teamRoute.js";
 import memberRoute from "./routes/memberRoute.js";
+import registrationRoute from "./routes/registrationRoute.js";
 
 dotenv.config();
 
@@ -33,7 +35,7 @@ testDBConnection();
 //
 
 // Test database MongoDB connection
-// connectMongoDB();
+connectMongoDB();
 //
 
 app.get("/", (req, res) => {
@@ -46,6 +48,7 @@ app.use(competitionRoute);
 app.use(roleRoute);
 app.use(teamRoute);
 app.use(memberRoute);
+app.use(registrationRoute);
 
 app.listen(PORT, () => {
   console.log(`Server is running on port ${PORT}`);
