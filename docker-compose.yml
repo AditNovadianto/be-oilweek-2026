@@ -1,12 +1,10 @@
-version: "3.8"
-
 services:
   app:
     build: .
     container_name: be_oilweek2026
     restart: always
     ports:
-      - "5000:5000"
+      - "3000:3000"
     env_file:
       - .env
     environment:
@@ -34,7 +32,7 @@ services:
       - mysql_data:/var/lib/mysql
 
   phpmyadmin:
-    image: phpmyadmin/phpmyadmin
+    image: phpmyadmin:latest
     container_name: phpmyadmin_app
     restart: always
     ports:
@@ -42,7 +40,8 @@ services:
     environment:
       PMA_HOST: mysql
       PMA_PORT: 3306
-      MYSQL_ROOT_PASSWORD: root
+      PMA_USER: root
+      PMA_PASSWORD: root
     depends_on:
       - mysql
 
