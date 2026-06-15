@@ -10,7 +10,7 @@ import {
 const router = express.Router();
 
 router.post("/createRole", verifyToken, createRole);
-router.get("/getAllRoles", verifyToken, getAllRoles);
+router.get("/getAllRoles", getAllRoles);
 router.put("/updateRole/:id", verifyToken, updateRole);
 router.delete("/deleteRole/:id", verifyToken, deleteRole);
 
