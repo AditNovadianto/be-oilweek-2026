@@ -30,7 +30,7 @@ router.post(
   createMember,
 );
 router.get("/getAllMembers", verifyToken, getAllMembers);
-router.get("/getMemberById/:id_team", verifyToken, getAllMemberById);
+router.get("/getAllMemberById/:id_team", verifyToken, getAllMemberById);
 router.put(
   "/updateMember/:id",
   verifyToken,
