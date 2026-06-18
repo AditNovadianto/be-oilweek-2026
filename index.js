@@ -10,6 +10,8 @@ import roleRoute from "./routes/roleRoute.js";
 import teamRoute from "./routes/teamRoute.js";
 import memberRoute from "./routes/memberRoute.js";
 import registrationRoute from "./routes/registrationRoute.js";
+import competitionStageRoute from "./routes/competitionStageRoute.js";
+import stageSubmissionRoute from "./routes/stageSubmissionRoute.js";
 
 dotenv.config();
 
@@ -49,6 +51,8 @@ app.use(roleRoute);
 app.use(teamRoute);
 app.use(memberRoute);
 app.use(registrationRoute);
+app.use(competitionStageRoute);
+app.use(stageSubmissionRoute);
 
 app.listen(PORT, () => {
   console.log(`Server is running on port ${PORT}`);

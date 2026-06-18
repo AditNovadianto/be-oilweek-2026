@@ -4,6 +4,7 @@ import jwt from "jsonwebtoken";
 import { uploadToCloudinary } from "../utils/uploadCloudinary.js";
 import { getTeamById } from "../models/teamModel.js";
 import { getAllMemberById } from "../models/memberModel.js";
+import { transporter } from "../utils/mailer.js";
 
 const signToken = (user) => {
   if (!process.env.JWT_SECRET) throw new Error("JWT_SECRET is not set");
@@ -188,5 +189,176 @@ export const getAllTeamLeaders = async (req, res) => {
   } catch (err) {
     console.error("getAllTeamLeaders error:", err);
     return res.status(500).json({ error: "Internal server error" });
+  }
+};
+
+// --- FORGOT PASSWORD ---
+export const forgotPassword = async (req, res) => {
+  const { email_team_leader } = req.body;
+
+  if (!email_team_leader) {
+    return res.status(400).json({ error: "Email is required" });
+  }
+
+  try {
+    const [rows] = await db.query(
+      `SELECT id_team_leader, name_team_leader, email_team_leader 
+       FROM team_leader 
+       WHERE email_team_leader = ? 
+       LIMIT 1`,
+      [email_team_leader],
+    );
+
+    if (rows.length === 0) {
+      return res.status(404).json({ error: "Team Leader not found" });
+    }
+
+    const user = rows[0];
+
+    const resetToken = jwt.sign(
+      {
+        id_team_leader: user.id_team_leader,
+        email_team_leader: user.email_team_leader,
+        type: "password-reset",
+      },
+      process.env.JWT_SECRET,
+      {
+        expiresIn: "15m",
+        issuer: "my-app",
+        audience: "my-app-users",
+        algorithm: "HS256",
+      },
+    );
+
+    const resetUrl = `${process.env.FRONTEND_URL}/team-leader/reset-password/${resetToken}`;
+
+    await transporter.sendMail({
+      from: `"OilWeek 2026" <${process.env.EMAIL_USER}>`,
+      to: user.email_team_leader,
+      subject: "Reset Password OilWeek 2026",
+      html: `
+        <div style="font-family: Arial, sans-serif; background-color: #f4f7fb; padding: 30px;">
+          <div style="max-width: 600px; margin: auto; background: #ffffff; border-radius: 16px; overflow: hidden; box-shadow: 0 10px 30px rgba(0,0,0,0.08);">
+            
+            <div style="background: linear-gradient(135deg, #091025, #032155); padding: 24px; text-align: center;">
+              <h1 style="color: #ffffff; margin: 0; font-size: 24px;">
+                Reset Password
+              </h1>
+            </div>
+
+            <div style="padding: 30px; color: #1f2937;">
+              <p style="font-size: 16px;">
+                Hi <strong>${user.name_team_leader}</strong>,
+              </p>
+
+              <p style="font-size: 15px; line-height: 1.7;">
+                Kami menerima permintaan untuk mengatur ulang password akun OilWeek 2026 kamu.
+              </p>
+
+              <p style="font-size: 15px; line-height: 1.7;">
+                Silakan klik tombol di bawah ini untuk membuat password baru.
+              </p>
+
+              <div style="text-align: center; margin: 32px 0;">
+                <a 
+                  href="${resetUrl}"
+                  style="display: inline-block; background: linear-gradient(135deg, #032155, #0ea5e9); color: #ffffff; text-decoration: none; padding: 14px 26px; border-radius: 10px; font-weight: bold;"
+                >
+                  Reset Password
+                </a>
+              </div>
+
+              <p style="font-size: 14px; color: #6b7280; line-height: 1.7;">
+                Link ini hanya berlaku selama <strong>15 menit</strong>. Jika kamu tidak meminta reset password, abaikan email ini.
+              </p>
+
+              <p style="font-size: 14px; color: #6b7280; word-break: break-all;">
+                Jika tombol tidak bisa diklik, salin link berikut:
+                <br />
+                ${resetUrl}
+              </p>
+            </div>
+          </div>
+        </div>
+      `,
+    });
+
+    return res.status(200).json({
+      message: "Reset password link has been sent to your email",
+    });
+  } catch (err) {
+    console.error("forgotPassword error:", err);
+    return res.status(500).json({ error: "Internal server error" });
+  }
+};
+
+// --- RESET PASSWORD ---
+export const resetPassword = async (req, res) => {
+  const { token } = req.params;
+  const { new_password } = req.body;
+
+  if (!token || !new_password) {
+    return res.status(400).json({
+      error: "Token and new password are required",
+    });
+  }
+
+  if (new_password.length < 8) {
+    return res.status(400).json({
+      error: "Password must be at least 8 characters",
+    });
+  }
+
+  try {
+    const decoded = jwt.verify(token, process.env.JWT_SECRET, {
+      issuer: "my-app",
+      audience: "my-app-users",
+      algorithms: ["HS256"],
+    });
+
+    if (decoded.type !== "password-reset") {
+      return res.status(400).json({
+        error: "Invalid token type",
+      });
+    }
+
+    const [rows] = await db.query(
+      `SELECT id_team_leader 
+       FROM team_leader 
+       WHERE id_team_leader = ? 
+       LIMIT 1`,
+      [decoded.id_team_leader],
+    );
+
+    if (rows.length === 0) {
+      return res.status(404).json({
+        error: "Team Leader not found",
+      });
+    }
+
+    const hashedPassword = await bcrypt.hash(new_password, 10);
+
+    await db.query(
+      `UPDATE team_leader 
+       SET password_team_leader = ? 
+       WHERE id_team_leader = ?`,
+      [hashedPassword, decoded.id_team_leader],
+    );
+
+    return res.status(200).json({
+      message: "Password has been reset successfully",
+    });
+  } catch (err) {
+    console.error("resetPassword error:", err);
+
+    if (err.name === "TokenExpiredError") {
+      return res.status(400).json({
+        error: "Reset password link has expired",
+      });
+    }
+
+    return res.status(400).json({
+      error: "Invalid reset password token",
+    });
   }
 };

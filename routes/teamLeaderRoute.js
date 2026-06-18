@@ -1,6 +1,8 @@
 import express from "express";
 import {
+  forgotPassword,
   getAllTeamLeaders,
+  resetPassword,
   signIn,
   signUp,
 } from "../controllers/teamLeaderController.js";
@@ -28,5 +30,7 @@ router.post(
 );
 router.post("/signInTeamLeader", signIn);
 router.get("/getAllTeamLeaders", verifyToken, getAllTeamLeaders);
+router.post("/team-leader/forgot-password", forgotPassword);
+router.post("/team-leader/reset-password/:token", resetPassword);
 
 export default router;
