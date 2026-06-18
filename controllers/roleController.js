@@ -28,6 +28,19 @@ export const getAllRoles = async (req, res) => {
   }
 };
 
+export const getRoleById = async (req, res) => {
+  const { id_role } = req.params;
+
+  try {
+    const roles = await roleModel.getRoleById(id_role);
+
+    return res.status(200).json({ roles });
+  } catch (error) {
+    console.error("Error fetching roles:", error);
+    return res.status(500).json({ error: "Internal server error" });
+  }
+};
+
 // Update
 export const updateRole = async (req, res) => {
   const { id } = req.params;

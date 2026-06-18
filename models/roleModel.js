@@ -27,6 +27,19 @@ export async function getAllRoles() {
   }
 }
 
+export async function getRoleById(id_role) {
+  try {
+    const [rows] = await db.query("SELECT * FROM roles WHERE id_role = ?", [
+      id_role,
+    ]);
+
+    return rows;
+  } catch (error) {
+    console.error("Error fetching roles by id:", error);
+    throw error;
+  }
+}
+
 // Update
 export async function updateRole(id, name_role) {
   try {
