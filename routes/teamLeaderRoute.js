@@ -5,6 +5,7 @@ import {
   resetPassword,
   signIn,
   signUp,
+  uploadProfileController,
 } from "../controllers/teamLeaderController.js";
 import multer from "multer";
 import { verifyToken } from "../middleware/auth.js";
@@ -16,8 +17,12 @@ const upload = multer({
   limits: { fileSize: 2 * 1024 * 1024 }, // 2MB
 });
 
-router.post(
-  "/signUpTeamLeader",
+router.post("/signUpTeamLeader", signUp);
+router.post("/signInTeamLeader", signIn);
+router.get("/getAllTeamLeaders", verifyToken, getAllTeamLeaders);
+router.put(
+  "/team-leader/profile/upload",
+  verifyToken,
   upload.fields([
     { name: "twibbon", maxCount: 1 },
     { name: "following_instagram", maxCount: 1 },
@@ -26,10 +31,8 @@ router.post(
     { name: "instagram_story", maxCount: 1 },
     { name: "repost_competition_instagram", maxCount: 1 },
   ]),
-  signUp,
+  uploadProfileController,
 );
-router.post("/signInTeamLeader", signIn);
-router.get("/getAllTeamLeaders", verifyToken, getAllTeamLeaders);
 router.post("/team-leader/forgot-password", forgotPassword);
 router.post("/team-leader/reset-password/:token", resetPassword);
 

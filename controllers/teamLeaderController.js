@@ -51,10 +51,6 @@ export const signUp = async (req, res) => {
     student_id_card,
   } = req.body;
 
-  if (!req.files) {
-    return res.status(400).json({ error: "Semua file wajib diupload" });
-  }
-
   const {
     twibbon,
     following_instagram,
@@ -62,7 +58,7 @@ export const signUp = async (req, res) => {
     following_tiktok,
     instagram_story,
     repost_competition_instagram,
-  } = req.files;
+  } = req.files || {};
 
   try {
     // 1) cek user sudah ada?
@@ -87,12 +83,18 @@ export const signUp = async (req, res) => {
       instagramStoryUrl,
       repostCompetitionInstagramUrl,
     ] = await Promise.all([
-      uploadToCloudinary(twibbon[0].buffer),
-      uploadToCloudinary(following_instagram[0].buffer),
-      uploadToCloudinary(following_linkedin[0].buffer),
-      uploadToCloudinary(following_tiktok[0].buffer),
-      uploadToCloudinary(instagram_story[0].buffer),
-      uploadToCloudinary(repost_competition_instagram[0].buffer),
+      twibbon ? uploadToCloudinary(twibbon[0].buffer) : null,
+      following_instagram
+        ? uploadToCloudinary(following_instagram[0].buffer)
+        : null,
+      following_linkedin
+        ? uploadToCloudinary(following_linkedin[0].buffer)
+        : null,
+      following_tiktok ? uploadToCloudinary(following_tiktok[0].buffer) : null,
+      instagram_story ? uploadToCloudinary(instagram_story[0].buffer) : null,
+      repost_competition_instagram
+        ? uploadToCloudinary(repost_competition_instagram[0].buffer)
+        : null,
     ]);
 
     // 4) insert user
@@ -188,6 +190,113 @@ export const getAllTeamLeaders = async (req, res) => {
     return res.status(200).json({ teamLeaders: rows });
   } catch (err) {
     console.error("getAllTeamLeaders error:", err);
+    return res.status(500).json({ error: "Internal server error" });
+  }
+};
+
+// helper ambil id dari token middleware
+const getTeamLeaderId = (req) => {
+  return req.user?.sub || req.user?.id_team_leader;
+};
+
+export const uploadProfileController = async (req, res) => {
+  try {
+    const id_team_leader = getTeamLeaderId(req);
+
+    if (!id_team_leader) {
+      return res.status(401).json({ error: "Unauthorized" });
+    }
+
+    const {
+      twibbon,
+      following_instagram,
+      following_linkedin,
+      following_tiktok,
+      instagram_story,
+      repost_competition_instagram,
+    } = req.files || {};
+
+    // ambil data lama dulu (biar aman kalau mau merge)
+    const [rows] = await db.query(
+      "SELECT * FROM team_leader WHERE id_team_leader = ?",
+      [id_team_leader],
+    );
+
+    if (rows.length === 0) {
+      return res.status(404).json({ error: "Team Leader not found" });
+    }
+
+    const user = rows[0];
+
+    // upload hanya jika file dikirim
+    const [twibbonUrl, igUrl, linkedinUrl, tiktokUrl, storyUrl, repostUrl] =
+      await Promise.all([
+        twibbon ? uploadToCloudinary(twibbon[0].buffer) : user.twibbon,
+        following_instagram
+          ? uploadToCloudinary(following_instagram[0].buffer)
+          : user.following_instagram,
+        following_linkedin
+          ? uploadToCloudinary(following_linkedin[0].buffer)
+          : user.following_linkedin,
+        following_tiktok
+          ? uploadToCloudinary(following_tiktok[0].buffer)
+          : user.following_tiktok,
+        instagram_story
+          ? uploadToCloudinary(instagram_story[0].buffer)
+          : user.instagram_story,
+        repost_competition_instagram
+          ? uploadToCloudinary(repost_competition_instagram[0].buffer)
+          : user.repost_competition_instagram,
+      ]);
+
+    // update DB
+    await db.query(
+      `UPDATE team_leader SET
+        twibbon = ?,
+        following_instagram = ?,
+        following_linkedin = ?,
+        following_tiktok = ?,
+        instagram_story = ?,
+        repost_competition_instagram = ?
+      WHERE id_team_leader = ?`,
+      [
+        twibbonUrl,
+        igUrl,
+        linkedinUrl,
+        tiktokUrl,
+        storyUrl,
+        repostUrl,
+        id_team_leader,
+      ],
+    );
+
+    // ambil data terbaru
+    const [updated] = await db.query(
+      `SELECT 
+        id_team_leader,
+        name_team_leader,
+        major_team_leader,
+        email_team_leader,
+        phone_number_team_leader,
+        student_id_card,
+        twibbon,
+        following_instagram,
+        following_linkedin,
+        following_tiktok,
+        instagram_story,
+        repost_competition_instagram,
+        id_platform
+      FROM team_leader
+      WHERE id_team_leader = ?`,
+      [id_team_leader],
+    );
+
+    return res.status(200).json({
+      message: "Profile updated successfully",
+      user: updated[0],
+    });
+  } catch (err) {
+    console.error("uploadProfileController error:", err);
     return res.status(500).json({ error: "Internal server error" });
   }
 };
