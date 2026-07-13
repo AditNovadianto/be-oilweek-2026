@@ -1,5 +1,6 @@
 import StageSubmission from "../models/stageSubmissionModel.js";
 import { uploadToCloudinary } from "../utils/uploadCloudinary.js";
+import path from "path";
 
 // Create
 export const createStageSubmission = async (req, res) => {
@@ -13,7 +14,19 @@ export const createStageSubmission = async (req, res) => {
       });
     }
 
-    const submissionUrl = await uploadToCloudinary(req.file.buffer);
+    const extension = path.extname(req.file.originalname).toLowerCase();
+
+    const originalName = path.basename(req.file.originalname, extension);
+
+    const safeFileName = originalName
+      .replace(/[^a-zA-Z0-9-_]/g, "-")
+      .replace(/-+/g, "-");
+
+    const submissionUrl = await uploadToCloudinary(req.file.buffer, {
+      folder: "oilweek2026/stage-submissions",
+      resourceType: "raw",
+      publicId: `${Date.now()}-${safeFileName}${extension}`,
+    });
 
     const stageSubmission = new StageSubmission({
       id_stage,
@@ -80,7 +93,19 @@ export const updateStageSubmission = async (req, res) => {
 
   try {
     if (req.file) {
-      const submissionUrl = await uploadToCloudinary(req.file.buffer);
+      const extension = path.extname(req.file.originalname).toLowerCase();
+
+      const originalName = path.basename(req.file.originalname, extension);
+
+      const safeFileName = originalName
+        .replace(/[^a-zA-Z0-9-_]/g, "-")
+        .replace(/-+/g, "-");
+
+      const submissionUrl = await uploadToCloudinary(req.file.buffer, {
+        folder: "oilweek2026/stage-submissions",
+        resourceType: "raw",
+        publicId: `${Date.now()}-${safeFileName}${extension}`,
+      });
 
       req.body.submission_link = submissionUrl;
     }
