@@ -1,6 +1,15 @@
 import { db } from "../config/db.js";
 import { uploadToCloudinary } from "../utils/uploadCloudinary.js";
 
+// Helper upload file opsional
+const uploadIfExists = async (file) => {
+  if (!file || !file[0]?.buffer) {
+    return null;
+  }
+
+  return uploadToCloudinary(file[0].buffer);
+};
+
 // Create
 export async function createMember(
   name_member,
@@ -17,25 +26,40 @@ export async function createMember(
   id_team,
 ) {
   try {
-    const twibbonUrl = await uploadToCloudinary(twibbon[0].buffer);
-    const followingInstagramUrl = await uploadToCloudinary(
-      following_instagram[0].buffer,
-    );
-    const followingLinkedinUrl = await uploadToCloudinary(
-      following_linkedin[0].buffer,
-    );
-    const followingTiktokUrl = await uploadToCloudinary(
-      following_tiktok[0].buffer,
-    );
-    const instagramStoryUrl = await uploadToCloudinary(
-      instagram_story[0].buffer,
-    );
-    const repostCompetitionInstagramUrl = await uploadToCloudinary(
-      repost_competition_instagram[0].buffer,
-    );
+    const [
+      twibbonUrl,
+      followingInstagramUrl,
+      followingLinkedinUrl,
+      followingTiktokUrl,
+      instagramStoryUrl,
+      repostCompetitionInstagramUrl,
+    ] = await Promise.all([
+      uploadIfExists(twibbon),
+      uploadIfExists(following_instagram),
+
+      // LinkedIn boleh tidak di-upload.
+      uploadIfExists(following_linkedin),
+
+      uploadIfExists(following_tiktok),
+      uploadIfExists(instagram_story),
+      uploadIfExists(repost_competition_instagram),
+    ]);
 
     const [result] = await db.query(
-      "INSERT INTO member (name_member, phone_number_member, email_member, major_member, student_id_card, twibbon, following_instagram, following_linkedin, following_tiktok, instagram_story, repost_competition_instagram, id_team) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+      `INSERT INTO member (
+        name_member,
+        phone_number_member,
+        email_member,
+        major_member,
+        student_id_card,
+        twibbon,
+        following_instagram,
+        following_linkedin,
+        following_tiktok,
+        instagram_story,
+        repost_competition_instagram,
+        id_team
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       [
         name_member,
         phone_number_member,
@@ -44,7 +68,10 @@ export async function createMember(
         student_id_card,
         twibbonUrl,
         followingInstagramUrl,
+
+        // Akan tersimpan null apabila tidak ada file LinkedIn.
         followingLinkedinUrl,
+
         followingTiktokUrl,
         instagramStoryUrl,
         repostCompetitionInstagramUrl,
@@ -71,7 +98,6 @@ export async function createMember(
 export async function getAllMembers() {
   try {
     const [rows] = await db.query("SELECT * FROM member");
-
     return rows;
   } catch (error) {
     console.error("Error fetching members:", error);
@@ -109,52 +135,58 @@ export async function updateMember(
   id_team,
 ) {
   try {
-    // Helper upload
-    const uploadIfExists = async (file) => {
-      return file ? await uploadToCloudinary(file[0].buffer) : null;
-    };
+    const [
+      twibbonUrl,
+      followingInstagramUrl,
+      followingLinkedinUrl,
+      followingTiktokUrl,
+      instagramStoryUrl,
+      repostCompetitionInstagramUrl,
+    ] = await Promise.all([
+      uploadIfExists(twibbon),
+      uploadIfExists(following_instagram),
 
-    // Upload jika ada file baru
-    const twibbonUrl = await uploadIfExists(twibbon);
-    const followingInstagramUrl = await uploadIfExists(following_instagram);
-    const followingLinkedinUrl = await uploadIfExists(following_linkedin);
-    const followingTiktokUrl = await uploadIfExists(following_tiktok);
-    const instagramStoryUrl = await uploadIfExists(instagram_story);
-    const repostCompetitionInstagramUrl = await uploadIfExists(
-      repost_competition_instagram,
-    );
+      // Tidak masalah jika tidak dikirim.
+      uploadIfExists(following_linkedin),
 
-    // Dynamic field
+      uploadIfExists(following_tiktok),
+      uploadIfExists(instagram_story),
+      uploadIfExists(repost_competition_instagram),
+    ]);
+
     const fields = [];
     const values = [];
 
-    // Field wajib (non-file)
-    if (name_member) {
+    if (name_member !== undefined && name_member !== null) {
       fields.push("name_member = ?");
       values.push(name_member);
     }
 
-    if (phone_number_member) {
+    if (phone_number_member !== undefined && phone_number_member !== null) {
       fields.push("phone_number_member = ?");
       values.push(phone_number_member);
     }
 
-    if (email_member) {
+    if (email_member !== undefined && email_member !== null) {
       fields.push("email_member = ?");
       values.push(email_member);
     }
 
-    if (major_member) {
+    if (major_member !== undefined && major_member !== null) {
       fields.push("major_member = ?");
       values.push(major_member);
     }
 
-    if (student_id_card) {
+    if (student_id_card !== undefined && student_id_card !== null) {
       fields.push("student_id_card = ?");
       values.push(student_id_card);
     }
 
-    // Field file (hanya kalau upload baru)
+    if (id_team !== undefined && id_team !== null) {
+      fields.push("id_team = ?");
+      values.push(id_team);
+    }
+
     if (twibbonUrl) {
       fields.push("twibbon = ?");
       values.push(twibbonUrl);
@@ -165,6 +197,7 @@ export async function updateMember(
       values.push(followingInstagramUrl);
     }
 
+    // Hanya diperbarui ketika file LinkedIn benar-benar dikirim.
     if (followingLinkedinUrl) {
       fields.push("following_linkedin = ?");
       values.push(followingLinkedinUrl);
@@ -185,13 +218,16 @@ export async function updateMember(
       values.push(repostCompetitionInstagramUrl);
     }
 
-    // Kalau tidak ada yang diupdate
     if (fields.length === 0) {
       throw new Error("No data to update");
     }
 
-    // Final query
-    const query = `UPDATE member SET ${fields.join(", ")} WHERE id_member = ?`;
+    const query = `
+      UPDATE member
+      SET ${fields.join(", ")}
+      WHERE id_member = ?
+    `;
+
     values.push(id);
 
     const [result] = await db.query(query, values);
