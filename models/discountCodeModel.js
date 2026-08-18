@@ -54,7 +54,38 @@ const discountCodeSchema = new mongoose.Schema(
 
     redeemed_by: [
       {
-        type: Number,
+        id_team_leader: {
+          type: Number,
+          required: true,
+        },
+
+        id_registration: {
+          type: Number,
+          required: true,
+        },
+
+        transaction_amount: {
+          type: Number,
+          required: true,
+          min: 0,
+        },
+
+        discount_amount: {
+          type: Number,
+          required: true,
+          min: 0,
+        },
+
+        final_amount: {
+          type: Number,
+          required: true,
+          min: 0,
+        },
+
+        redeemed_at: {
+          type: Date,
+          default: Date.now,
+        },
       },
     ],
 

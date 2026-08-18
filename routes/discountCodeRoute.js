@@ -6,6 +6,7 @@ import {
   deleteDiscountCode,
   getDiscountCodeById,
   getDiscountCodes,
+  inquiryDiscountCode,
   redeemDiscountCode,
   updateDiscountCode,
 } from "../controllers/discountCodeController.js";
@@ -17,6 +18,8 @@ router.post("/createDiscountCode", verifyToken, createDiscountCode);
 router.get("/getDiscountCodes", verifyToken, getDiscountCodes);
 
 router.get("/getDiscountCodeById/:id", verifyToken, getDiscountCodeById);
+
+router.post("/inquiryDiscountCode", verifyToken, inquiryDiscountCode);
 
 router.post("/redeemDiscountCode", verifyToken, redeemDiscountCode);
 
