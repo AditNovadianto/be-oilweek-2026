@@ -1,5 +1,5 @@
 import express from "express";
-import { verifyToken } from "../middleware/auth.js";
+import { requireInternalUser, verifyToken } from "../middleware/auth.js";
 import {
   createTeam,
   deleteTeam,
@@ -11,7 +11,7 @@ import {
 const router = express.Router();
 
 router.post("/createTeam", verifyToken, createTeam);
-router.get("/getAllTeams", verifyToken, getAllTeams);
+router.get("/getAllTeams", verifyToken, requireInternalUser, getAllTeams);
 router.get("/getTeamById/:id_team_leader", verifyToken, getTeamById);
 router.put("/updateTeam/:id", verifyToken, updateTeam);
 router.delete("/deleteTeam/:id", verifyToken, deleteTeam);

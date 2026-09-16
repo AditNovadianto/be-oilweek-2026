@@ -1,5 +1,5 @@
 import express from "express";
-import { verifyToken } from "../middleware/auth.js";
+import { requireInternalUser, verifyToken } from "../middleware/auth.js";
 import {
   createCompetitionStageInfo,
   deleteCompetitionStageInfo,
@@ -13,6 +13,7 @@ const router = express.Router();
 router.post(
   "/createCompetitionStageInfo",
   verifyToken,
+  requireInternalUser,
   createCompetitionStageInfo,
 );
 router.get(
@@ -33,6 +34,7 @@ router.put(
 router.delete(
   "/deleteCompetitionStageInfo/:id",
   verifyToken,
+  requireInternalUser,
   deleteCompetitionStageInfo,
 );
 

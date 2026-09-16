@@ -1,5 +1,9 @@
 import express from "express";
-import { verifyToken } from "../middleware/auth.js";
+import {
+  requireInternalUser,
+  requireTeamLeader,
+  verifyToken,
+} from "../middleware/auth.js";
 import multer from "multer";
 import {
   createRegistration,
@@ -19,10 +23,16 @@ const upload = multer({
 router.post(
   "/createRegistration",
   verifyToken,
+  requireTeamLeader,
   upload.fields([{ name: "payment_proof", maxCount: 1 }]),
   createRegistration,
 );
-router.get("/getAllRegistrations", verifyToken, getAllRegistrations);
+router.get(
+  "/getAllRegistrations",
+  verifyToken,
+  requireInternalUser,
+  getAllRegistrations,
+);
 router.get(
   "/getRegistrationByIdTeamLeader/:id_team_leader",
   verifyToken,
@@ -31,9 +41,15 @@ router.get(
 router.put(
   "/updateRegistration/:id",
   verifyToken,
+  requireInternalUser,
   upload.fields([{ name: "payment_proof", maxCount: 1 }]),
   updateRegistration,
 );
-router.delete("/deleteRegistration/:id", verifyToken, deleteRegistration);
+router.delete(
+  "/deleteRegistration/:id",
+  verifyToken,
+  requireInternalUser,
+  deleteRegistration,
+);
 
 export default router;

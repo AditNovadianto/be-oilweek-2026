@@ -1,5 +1,5 @@
 import express from "express";
-import { verifyToken } from "../middleware/auth.js";
+import { requireInternalUser, verifyToken } from "../middleware/auth.js";
 import {
   createMember,
   deleteMember,
@@ -29,7 +29,7 @@ router.post(
   ]),
   createMember,
 );
-router.get("/getAllMembers", verifyToken, getAllMembers);
+router.get("/getAllMembers", verifyToken, requireInternalUser, getAllMembers);
 router.get("/getAllMemberById/:id_team", verifyToken, getAllMemberById);
 router.put(
   "/updateMember/:id",

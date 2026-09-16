@@ -1,5 +1,5 @@
 import express from "express";
-import { verifyToken } from "../middleware/auth.js";
+import { requireInternalUser, verifyToken } from "../middleware/auth.js";
 import {
   createCompetitionStage,
   deleteCompetitionStage,
@@ -9,13 +9,28 @@ import {
 
 const router = express.Router();
 
-router.post("/createStage", verifyToken, createCompetitionStage);
+router.post(
+  "/createStage",
+  verifyToken,
+  requireInternalUser,
+  createCompetitionStage,
+);
 router.get(
   "/getStagesByIdCompetition/:id_competition",
   verifyToken,
   getCompetitionStagesByIdCompetition,
 );
-router.put("/updateStage/:id", verifyToken, updateCompetitionStage);
-router.delete("/deleteStage/:id", verifyToken, deleteCompetitionStage);
+router.put(
+  "/updateStage/:id",
+  verifyToken,
+  requireInternalUser,
+  updateCompetitionStage,
+);
+router.delete(
+  "/deleteStage/:id",
+  verifyToken,
+  requireInternalUser,
+  deleteCompetitionStage,
+);
 
 export default router;
