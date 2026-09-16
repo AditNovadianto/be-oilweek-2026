@@ -73,7 +73,7 @@ test("competition admins cannot replace team submission content", async () => {
 
   await updateStageSubmission(
     {
-      auth: { actorType: "USER", competitionId: 1 },
+      auth: { actorType: "USER", roleId: 2 },
       params: { id: "507f1f77bcf86cd799439011" },
       body: { submission_title: "Replaced" },
       file: null,

@@ -1,5 +1,4 @@
 import * as registrationModel from "../models/registrationModel.js";
-import { getCompetitionScope } from "../middleware/resourceAccess.js";
 
 // Create
 export const createRegistration = async (req, res) => {
@@ -49,9 +48,7 @@ export const createRegistration = async (req, res) => {
 // Read
 export const getAllRegistrations = async (req, res) => {
   try {
-    const registrations = await registrationModel.getAllRegistrations(
-      getCompetitionScope(req.auth),
-    );
+    const registrations = await registrationModel.getAllRegistrations();
 
     res.status(200).json({ registrations });
   } catch (error) {
@@ -65,10 +62,7 @@ export const getRegistrationByIdTeamLeader = async (req, res) => {
 
   try {
     const registration =
-      await registrationModel.getRegistrationByIdTeamLeader(
-        id_team_leader,
-        getCompetitionScope(req.auth),
-      );
+      await registrationModel.getRegistrationByIdTeamLeader(id_team_leader);
 
     if (!registration) {
       return res.status(404).json({ error: "Registration not found" });

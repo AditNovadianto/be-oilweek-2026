@@ -1,8 +1,6 @@
 import StageSubmission from "../models/stageSubmissionModel.js";
 import { uploadToCloudinary } from "../utils/uploadCloudinary.js";
 import path from "path";
-import CompetitionStage from "../models/competitionStageModel.js";
-import { isGlobalAdmin } from "../middleware/resourceAccess.js";
 
 // Create
 export const createStageSubmission = async (req, res) => {
@@ -75,22 +73,7 @@ export const getStageSubmissionsByIdTeam = async (req, res) => {
   const { id_team } = req.params;
 
   try {
-    let query = { id_team };
-
-    if (req.auth.actorType === "USER" && !isGlobalAdmin(req.auth)) {
-      const stages = await CompetitionStage.find({
-        id_competition: req.auth.competitionId,
-      })
-        .select("_id")
-        .lean();
-
-      query = {
-        id_team,
-        id_stage: { $in: stages.map((stage) => String(stage._id)) },
-      };
-    }
-
-    const submissions = await StageSubmission.find(query);
+    const submissions = await StageSubmission.find({ id_team });
 
     res.status(200).json({
       success: true,

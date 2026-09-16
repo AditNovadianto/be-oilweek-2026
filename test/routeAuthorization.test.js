@@ -83,7 +83,7 @@ test("team and member lookups enforce resource ownership", () => {
   ]);
 });
 
-test("stage administration enforces competition scope", () => {
+test("stage routes retain resource access gates", () => {
   assert.deepEqual(
     getHandlers(
       competitionStageRoute,

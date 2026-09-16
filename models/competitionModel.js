@@ -16,15 +16,9 @@ export async function createCompetition(name, status) {
 }
 
 // Read
-export async function getAllCompetitions(idCompetition = null) {
+export async function getAllCompetitions() {
   try {
-    const [rows] =
-      idCompetition === null
-        ? await db.query("SELECT * FROM competition")
-        : await db.query(
-            "SELECT * FROM competition WHERE id_competition = ?",
-            [idCompetition],
-          );
+    const [rows] = await db.query("SELECT * FROM competition");
 
     return rows;
   } catch (error) {

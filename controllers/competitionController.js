@@ -1,5 +1,4 @@
 import * as competitionModel from "../models/competitionModel.js";
-import { getCompetitionScope } from "../middleware/resourceAccess.js";
 
 // Create
 export const createCompetition = async (req, res) => {
@@ -28,11 +27,7 @@ export const createCompetition = async (req, res) => {
 // Read
 export const getAllCompetitions = async (req, res) => {
   try {
-    const scope =
-      req.auth.actorType === "TEAM_LEADER"
-        ? null
-        : getCompetitionScope(req.auth);
-    const competitions = await competitionModel.getAllCompetitions(scope);
+    const competitions = await competitionModel.getAllCompetitions();
 
     return res.status(200).json({ competitions });
   } catch (error) {

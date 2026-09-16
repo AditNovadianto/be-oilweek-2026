@@ -3,7 +3,6 @@ import test from "node:test";
 import {
   canAccessCompetition,
   canAccessResource,
-  getCompetitionScope,
   resolveMemberResource,
   resolveRegistrationResource,
   resolveTeamResource,
@@ -13,24 +12,21 @@ const globalAdmin = {
   actorType: "USER",
   actorId: 1,
   roleId: 1,
-  competitionId: null,
 };
 
 const petrosmartAdmin = {
   actorType: "USER",
   actorId: 8,
   roleId: 2,
-  competitionId: 1,
 };
 
 const teamLeader = {
   actorType: "TEAM_LEADER",
   actorId: 2,
   roleId: null,
-  competitionId: null,
 };
 
-test("resource access supports global, competition, and owner scopes", () => {
+test("resource access allows internal users and enforces team ownership", () => {
   const resource = {
     ownerId: 2,
     competitionIds: [1, 3],
@@ -39,19 +35,11 @@ test("resource access supports global, competition, and owner scopes", () => {
   assert.equal(canAccessResource(globalAdmin, resource), true);
   assert.equal(canAccessResource(petrosmartAdmin, resource), true);
   assert.equal(canAccessResource(teamLeader, resource), true);
-  assert.equal(
-    canAccessResource({ ...petrosmartAdmin, competitionId: 2 }, resource),
-    false,
-  );
+  assert.equal(canAccessResource(petrosmartAdmin, resource), true);
   assert.equal(
     canAccessResource({ ...teamLeader, actorId: 3 }, resource),
     false,
   );
-});
-
-test("global admins have no query scope while competition admins do", () => {
-  assert.equal(getCompetitionScope(globalAdmin), null);
-  assert.equal(getCompetitionScope(petrosmartAdmin), 1);
 });
 
 test("team leaders need a registration for competition access", async () => {
@@ -68,6 +56,21 @@ test("team leaders need a registration for competition access", async () => {
 
   assert.equal(allowed, true);
   assert.equal(denied, false);
+});
+
+test("competition admins retain access to every competition", async () => {
+  let queryCalled = false;
+  const allowed = await canAccessCompetition(
+    petrosmartAdmin,
+    6,
+    async () => {
+      queryCalled = true;
+      return [[]];
+    },
+  );
+
+  assert.equal(allowed, true);
+  assert.equal(queryCalled, false);
 });
 
 test("team resources collect every registered competition", async () => {

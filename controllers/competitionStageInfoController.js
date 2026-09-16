@@ -2,7 +2,6 @@ import mongoose from "mongoose";
 import CompetitionStageInfo from "../models/competitionStageInfoModel.js";
 import CompetitionStage from "../models/competitionStageModel.js";
 import { db } from "../config/db.js";
-import { isGlobalAdmin } from "../middleware/resourceAccess.js";
 
 const getTeamLeaderContext = async (idTeamLeader) => {
   const [rows] = await db.query(
@@ -148,16 +147,10 @@ export const getAllCompetitionStageInfos = async (req, res) => {
     let stageFilter = {};
     let idTeam = null;
 
-    if (!isGlobalAdmin(req.auth)) {
-      let competitionIds = [];
-
-      if (req.auth.actorType === "USER") {
-        competitionIds = [req.auth.competitionId];
-      } else {
-        const context = await getTeamLeaderContext(req.auth.actorId);
-        competitionIds = context.competitionIds;
-        idTeam = context.idTeam;
-      }
+    if (req.auth.actorType === "TEAM_LEADER") {
+      const context = await getTeamLeaderContext(req.auth.actorId);
+      const competitionIds = context.competitionIds;
+      idTeam = context.idTeam;
 
       const stages = await CompetitionStage.find({
         id_competition: { $in: competitionIds },

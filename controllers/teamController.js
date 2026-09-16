@@ -1,5 +1,4 @@
 import * as teamModel from "../models/teamModel.js";
-import { getCompetitionScope } from "../middleware/resourceAccess.js";
 
 // Create
 export const createTeam = async (req, res) => {
@@ -37,7 +36,7 @@ export const createTeam = async (req, res) => {
 // Read
 export const getAllTeams = async (req, res) => {
   try {
-    const teams = await teamModel.getAllTeams(getCompetitionScope(req.auth));
+    const teams = await teamModel.getAllTeams();
 
     return res.status(200).json({ teams });
   } catch (error) {

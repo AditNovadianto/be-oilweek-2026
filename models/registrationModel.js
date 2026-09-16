@@ -67,15 +67,9 @@ export async function createRegistration(
 }
 
 // Read
-export async function getAllRegistrations(idCompetition = null) {
+export async function getAllRegistrations() {
   try {
-    const [rows] =
-      idCompetition === null
-        ? await db.query("SELECT * FROM registration")
-        : await db.query(
-            "SELECT * FROM registration WHERE id_competition = ?",
-            [idCompetition],
-          );
+    const [rows] = await db.query("SELECT * FROM registration");
 
     return rows;
   } catch (error) {
@@ -84,22 +78,12 @@ export async function getAllRegistrations(idCompetition = null) {
   }
 }
 
-export async function getRegistrationByIdTeamLeader(
-  id_team_leader,
-  idCompetition = null,
-) {
+export async function getRegistrationByIdTeamLeader(id_team_leader) {
   try {
-    const [rows] =
-      idCompetition === null
-        ? await db.query(
-            "SELECT * FROM registration WHERE id_team_leader = ?",
-            [id_team_leader],
-          )
-        : await db.query(
-            `SELECT * FROM registration
-             WHERE id_team_leader = ? AND id_competition = ?`,
-            [id_team_leader, idCompetition],
-          );
+    const [rows] = await db.query(
+      "SELECT * FROM registration WHERE id_team_leader = ?",
+      [id_team_leader],
+    );
 
     return rows;
   } catch (error) {

@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import { db } from "../config/db.js";
+import { getAllCompetitions } from "../models/competitionModel.js";
 import { getAllMembers } from "../models/memberModel.js";
 import {
   getAllRegistrations,
@@ -8,7 +9,7 @@ import {
 } from "../models/registrationModel.js";
 import { getAllTeams } from "../models/teamModel.js";
 
-test("competition-scoped list queries bind the competition ID", async (t) => {
+test("internal admin lists retain their unscoped queries", async (t) => {
   const originalQuery = db.query;
   const calls = [];
 
@@ -21,15 +22,16 @@ test("competition-scoped list queries bind the competition ID", async (t) => {
     db.query = originalQuery;
   });
 
-  await getAllTeams(3);
-  await getAllMembers(3);
-  await getAllRegistrations(3);
+  await getAllCompetitions();
+  await getAllTeams();
+  await getAllMembers();
+  await getAllRegistrations();
 
-  assert.equal(calls.length, 3);
+  assert.equal(calls.length, 4);
 
   for (const call of calls) {
-    assert.deepEqual(call.values, [3]);
-    assert.match(call.sql, /id_competition = \?/);
+    assert.deepEqual(call.values, []);
+    assert.doesNotMatch(call.sql, /WHERE.*id_competition/);
   }
 });
 

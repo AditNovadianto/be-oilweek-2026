@@ -6,7 +6,6 @@ import {
   requireInternalUser,
   requireTeamLeader,
   resolveActor,
-  resolveCompetitionScope,
 } from "../middleware/auth.js";
 
 const createResponse = () => {
@@ -50,11 +49,6 @@ test("resolveActor loads an internal user's current database role", async () => 
   const queries = [];
   const query = async (sql, values) => {
     queries.push({ sql, values });
-
-    if (sql.includes("FROM competition")) {
-      return [[{ id_competition: 1 }]];
-    }
-
     return [
       [
         {
@@ -76,49 +70,10 @@ test("resolveActor loads an internal user's current database role", async () => 
     actorId: 8,
     roleId: 2,
     roleName: "ADMIN PETROSMART",
-    competitionId: 1,
   });
   assert.deepEqual(queries[0].values, [8]);
   assert.match(queries[0].sql, /LEFT JOIN roles/);
-  assert.doesNotMatch(queries[0].sql, /roles\.id_competition/);
-  assert.deepEqual(queries[1].values, ["%PETROSMART%"]);
-});
-
-test("competition scope resolves from existing role and competition data", async () => {
-  const scope = await resolveCompetitionScope(
-    3,
-    "ADMIN PAPER & POSTER",
-    async (sql, values) => {
-      assert.match(sql, /FROM competition/);
-      assert.deepEqual(values, ["%PAPER%POSTER%"]);
-      return [[{ id_competition: 2 }]];
-    },
-  );
-
-  assert.equal(scope, 2);
-});
-
-test("competition scope fails closed for changed roles or ambiguous data", async () => {
-  let queryCalled = false;
-  const changedRole = await resolveCompetitionScope(
-    2,
-    "ADMIN OTHER",
-    async () => {
-      queryCalled = true;
-      return [[]];
-    },
-  );
-  const ambiguousCompetition = await resolveCompetitionScope(
-    2,
-    "ADMIN PETROSMART",
-    async () => [
-      [{ id_competition: 1 }, { id_competition: 8 }],
-    ],
-  );
-
-  assert.equal(changedRole, null);
-  assert.equal(queryCalled, false);
-  assert.equal(ambiguousCompetition, null);
+  assert.equal(queries.length, 1);
 });
 
 test("resolveActor loads team leaders without an admin role", async () => {
@@ -132,7 +87,6 @@ test("resolveActor loads team leaders without an admin role", async () => {
     actorId: 2,
     roleId: null,
     roleName: null,
-    competitionId: null,
   });
 });
 
@@ -160,7 +114,6 @@ test("requireInternalUser rejects team leaders", () => {
   const internalUser = runMiddleware(requireInternalUser, {
     actorType: "USER",
     roleId: 2,
-    competitionId: 1,
   });
   const teamLeader = runMiddleware(requireInternalUser, {
     actorType: "TEAM_LEADER",
@@ -170,15 +123,14 @@ test("requireInternalUser rejects team leaders", () => {
   assert.equal(teamLeader.res.statusCode, 403);
 });
 
-test("requireInternalUser rejects competition admins without a scope", () => {
+test("requireInternalUser allows competition admins without a scope", () => {
   const result = runMiddleware(requireInternalUser, {
     actorType: "USER",
     roleId: 2,
-    competitionId: null,
   });
 
-  assert.equal(result.res.statusCode, 403);
-  assert.equal(result.nextCalled, false);
+  assert.equal(result.res.statusCode, null);
+  assert.equal(result.nextCalled, true);
 });
 
 test("requireTeamLeader rejects internal users", () => {

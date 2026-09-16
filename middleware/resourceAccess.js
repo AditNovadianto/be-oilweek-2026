@@ -3,27 +3,13 @@ import CompetitionStage from "../models/competitionStageModel.js";
 import CompetitionStageInfo from "../models/competitionStageInfoModel.js";
 import StageSubmission from "../models/stageSubmissionModel.js";
 
-export const isGlobalAdmin = (auth) => {
-  return auth?.actorType === "USER" && Number(auth.roleId) === 1;
-};
-
-export const getCompetitionScope = (auth) => {
-  return isGlobalAdmin(auth) ? null : auth?.competitionId;
-};
-
 export const canAccessResource = (auth, resource) => {
-  if (isGlobalAdmin(auth)) {
+  if (auth?.actorType === "USER") {
     return true;
   }
 
   if (auth?.actorType === "TEAM_LEADER") {
     return Number(resource.ownerId) === Number(auth.actorId);
-  }
-
-  if (auth?.actorType === "USER") {
-    return resource.competitionIds.some(
-      (id) => Number(id) === Number(auth.competitionId),
-    );
   }
 
   return false;
@@ -34,12 +20,8 @@ export const canAccessCompetition = async (
   idCompetition,
   query = db.query.bind(db),
 ) => {
-  if (isGlobalAdmin(auth)) {
-    return true;
-  }
-
   if (auth?.actorType === "USER") {
-    return Number(auth.competitionId) === Number(idCompetition);
+    return true;
   }
 
   if (auth?.actorType === "TEAM_LEADER") {
@@ -172,7 +154,7 @@ export const resolveSubmissionResource = async (idSubmission) => {
 };
 
 const requireResourceAccess = async (req, res, next, id, resolver) => {
-  if (isGlobalAdmin(req.auth)) {
+  if (req.auth?.actorType === "USER") {
     return next();
   }
 
@@ -297,6 +279,10 @@ export function requireCompetitionParamAccess(req, res, next) {
 }
 
 const requireStageAccess = async (req, res, next, idStage) => {
+  if (req.auth?.actorType === "USER") {
+    return next();
+  }
+
   try {
     const idCompetition = await resolveStageCompetition(idStage);
 
@@ -334,6 +320,10 @@ export function requireStageBodyAccess(req, res, next) {
 }
 
 export async function requireStageInfoParamAccess(req, res, next) {
+  if (req.auth?.actorType === "USER") {
+    return next();
+  }
+
   try {
     const idCompetition = await resolveStageInfoCompetition(req.params.id);
 
