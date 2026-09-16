@@ -1,6 +1,7 @@
 import StageSubmission from "../models/stageSubmissionModel.js";
-import { uploadToCloudinary } from "../utils/uploadCloudinary.js";
-import path from "path";
+import { uploadSubmissionToCloudinary } from "../utils/uploadSubmissionCloudinary.js";
+import path from "node:path";
+import fs from "node:fs/promises";
 
 // Create
 export const createStageSubmission = async (req, res) => {
@@ -22,7 +23,7 @@ export const createStageSubmission = async (req, res) => {
       .replace(/[^a-zA-Z0-9-_]/g, "-")
       .replace(/-+/g, "-");
 
-    const submissionUrl = await uploadToCloudinary(req.file.buffer, {
+    const submissionUrl = await uploadSubmissionToCloudinary(req.file.path, {
       folder: "oilweek2026/stage-submissions",
       resourceType: "raw",
       publicId: `${Date.now()}-${safeFileName}${extension}`,
@@ -37,16 +38,26 @@ export const createStageSubmission = async (req, res) => {
 
     const savedSubmission = await stageSubmission.save();
 
-    res.status(201).json({
+    return res.status(201).json({
       success: true,
       message: "Stage submission created successfully",
       data: savedSubmission,
     });
   } catch (error) {
-    res.status(400).json({
+    console.error("Create submission error:", error);
+
+    return res.status(400).json({
       success: false,
       message: error.message,
     });
+  } finally {
+    if (req.file?.path) {
+      try {
+        await fs.unlink(req.file.path);
+      } catch (error) {
+        console.error("Failed to delete temp file:", error);
+      }
+    }
   }
 };
 
@@ -158,7 +169,7 @@ export const updateStageSubmission = async (req, res) => {
         .replace(/[^a-zA-Z0-9-_]/g, "-")
         .replace(/-+/g, "-");
 
-      const submissionUrl = await uploadToCloudinary(req.file.buffer, {
+      const submissionUrl = await uploadSubmissionToCloudinary(req.file.path, {
         folder: "oilweek2026/stage-submissions",
         resourceType: "raw",
         publicId: `${Date.now()}-${safeFileName}${extension}`,
@@ -195,10 +206,20 @@ export const updateStageSubmission = async (req, res) => {
       data: updatedSubmission,
     });
   } catch (error) {
+    console.error("Update submission error:", error);
+
     return res.status(400).json({
       success: false,
       message: error.message,
     });
+  } finally {
+    if (req.file?.path) {
+      try {
+        await fs.unlink(req.file.path);
+      } catch (error) {
+        console.error("Failed to delete temp file:", error);
+      }
+    }
   }
 };
 

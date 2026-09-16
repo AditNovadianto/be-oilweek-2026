@@ -1,9 +1,13 @@
 import express from "express";
+import multer from "multer";
+import os from "node:os";
+
 import {
   requireInternalUser,
   requireTeamLeader,
   verifyToken,
 } from "../middleware/auth.js";
+
 import {
   createStageSubmission,
   deleteStageSubmission,
@@ -11,7 +15,7 @@ import {
   getStageSubmissionsByIdTeam,
   updateStageSubmission,
 } from "../controllers/stageSubmissionController.js";
-import multer from "multer";
+
 import {
   requireStageBodyAccess,
   requireStageRouteParamAccess,
@@ -23,8 +27,25 @@ import {
 const router = express.Router();
 
 const upload = multer({
-  storage: multer.memoryStorage(),
-  limits: { fileSize: 25 * 1024 * 1024 }, // 25MB
+  storage: multer.diskStorage({
+    destination: (req, file, cb) => {
+      cb(null, os.tmpdir());
+    },
+
+    filename: (req, file, cb) => {
+      const extension = file.originalname
+        .substring(file.originalname.lastIndexOf("."))
+        .toLowerCase();
+
+      const uniqueName = `${Date.now()}-${Math.random().toString(36).slice(2)}${extension}`;
+
+      cb(null, uniqueName);
+    },
+  }),
+
+  limits: {
+    fileSize: 10 * 1024 * 1024, // 10 MB
+  },
 });
 
 router.post(
@@ -36,6 +57,7 @@ router.post(
   requireTeamBodyAccess,
   createStageSubmission,
 );
+
 router.get(
   "/getStageSubmissionsByIdStage/:id_stage",
   verifyToken,
@@ -43,12 +65,14 @@ router.get(
   requireStageRouteParamAccess,
   getStageSubmissionsByIdStage,
 );
+
 router.get(
   "/getStageSubmissionsByIdTeam/:id_team",
   verifyToken,
   requireTeamRouteParamAccess,
   getStageSubmissionsByIdTeam,
 );
+
 router.put(
   "/updateStageSubmission/:id",
   verifyToken,
@@ -56,6 +80,7 @@ router.put(
   upload.single("submission_link"),
   updateStageSubmission,
 );
+
 router.delete(
   "/deleteStageSubmission/:id",
   verifyToken,
