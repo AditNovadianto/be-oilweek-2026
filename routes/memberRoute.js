@@ -1,5 +1,5 @@
 import express from "express";
-import { verifyToken } from "../middleware/auth.js";
+import { requireInternalUser, verifyToken } from "../middleware/auth.js";
 import {
   createMember,
   deleteMember,
@@ -8,6 +8,11 @@ import {
   updateMember,
 } from "../controllers/memberController.js";
 import multer from "multer";
+import {
+  requireMemberParamAccess,
+  requireTeamBodyAccess,
+  requireTeamRouteParamAccess,
+} from "../middleware/resourceAccess.js";
 
 const router = express.Router();
 
@@ -27,13 +32,20 @@ router.post(
     { name: "instagram_story", maxCount: 1 },
     { name: "repost_competition_instagram", maxCount: 1 },
   ]),
+  requireTeamBodyAccess,
   createMember,
 );
-router.get("/getAllMembers", verifyToken, getAllMembers);
-router.get("/getAllMemberById/:id_team", verifyToken, getAllMemberById);
+router.get("/getAllMembers", verifyToken, requireInternalUser, getAllMembers);
+router.get(
+  "/getAllMemberById/:id_team",
+  verifyToken,
+  requireTeamRouteParamAccess,
+  getAllMemberById,
+);
 router.put(
   "/updateMember/:id",
   verifyToken,
+  requireMemberParamAccess,
   upload.fields([
     { name: "twibbon", maxCount: 1 },
     { name: "following_instagram", maxCount: 1 },
@@ -44,6 +56,11 @@ router.put(
   ]),
   updateMember,
 );
-router.delete("/deleteMember/:id", verifyToken, deleteMember);
+router.delete(
+  "/deleteMember/:id",
+  verifyToken,
+  requireMemberParamAccess,
+  deleteMember,
+);
 
 export default router;

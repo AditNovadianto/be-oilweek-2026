@@ -1,5 +1,9 @@
 import express from "express";
-import { verifyToken } from "../middleware/auth.js";
+import {
+  requireInternalUser,
+  requireTeamLeader,
+  verifyToken,
+} from "../middleware/auth.js";
 import {
   createStageSubmission,
   deleteStageSubmission,
@@ -8,6 +12,13 @@ import {
   updateStageSubmission,
 } from "../controllers/stageSubmissionController.js";
 import multer from "multer";
+import {
+  requireStageBodyAccess,
+  requireStageRouteParamAccess,
+  requireSubmissionParamAccess,
+  requireTeamBodyAccess,
+  requireTeamRouteParamAccess,
+} from "../middleware/resourceAccess.js";
 
 const router = express.Router();
 
@@ -19,25 +30,37 @@ const upload = multer({
 router.post(
   "/createStageSubmission",
   verifyToken,
+  requireTeamLeader,
   upload.single("submission_link"),
+  requireStageBodyAccess,
+  requireTeamBodyAccess,
   createStageSubmission,
 );
 router.get(
   "/getStageSubmissionsByIdStage/:id_stage",
   verifyToken,
+  requireInternalUser,
+  requireStageRouteParamAccess,
   getStageSubmissionsByIdStage,
 );
 router.get(
   "/getStageSubmissionsByIdTeam/:id_team",
   verifyToken,
+  requireTeamRouteParamAccess,
   getStageSubmissionsByIdTeam,
 );
 router.put(
   "/updateStageSubmission/:id",
   verifyToken,
+  requireSubmissionParamAccess,
   upload.single("submission_link"),
   updateStageSubmission,
 );
-router.delete("/deleteStageSubmission/:id", verifyToken, deleteStageSubmission);
+router.delete(
+  "/deleteStageSubmission/:id",
+  verifyToken,
+  requireSubmissionParamAccess,
+  deleteStageSubmission,
+);
 
 export default router;

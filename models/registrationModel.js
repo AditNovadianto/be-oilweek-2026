@@ -1,6 +1,40 @@
 import { db } from "../config/db.js";
 import { uploadToCloudinary } from "../utils/uploadCloudinary.js";
 
+export async function getRegistrationEligibility(
+  idTeamLeader,
+  idCompetition,
+) {
+  try {
+    const [teamRows] = await db.query(
+      `SELECT team.id_team, COUNT(member.id_member) AS member_count
+       FROM team
+       LEFT JOIN member ON member.id_team = team.id_team
+       WHERE team.id_team_leader = ?
+       GROUP BY team.id_team
+       LIMIT 1`,
+      [idTeamLeader],
+    );
+
+    const [registrationRows] = await db.query(
+      `SELECT id_registration
+       FROM registration
+       WHERE id_team_leader = ? AND id_competition = ?
+       LIMIT 1`,
+      [idTeamLeader, idCompetition],
+    );
+
+    return {
+      hasTeam: teamRows.length > 0,
+      memberCount: Number(teamRows[0]?.member_count || 0),
+      hasRegistration: registrationRows.length > 0,
+    };
+  } catch (error) {
+    console.error("Error checking registration eligibility:", error);
+    throw error;
+  }
+}
+
 // Create
 export async function createRegistration(
   category_registration,

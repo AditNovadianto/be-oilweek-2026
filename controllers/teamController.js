@@ -2,10 +2,16 @@ import * as teamModel from "../models/teamModel.js";
 
 // Create
 export const createTeam = async (req, res) => {
-  const { team_name, institution, international_team, id_team_leader } =
-    req.body;
+  const { team_name, institution, international_team } = req.body;
+  const id_team_leader = req.auth.actorId;
 
   try {
+    const existingTeam = await teamModel.getTeamById(id_team_leader);
+
+    if (existingTeam) {
+      return res.status(409).json({ error: "Team already exists" });
+    }
+
     const teamId = await teamModel.createTeam(
       team_name,
       institution,

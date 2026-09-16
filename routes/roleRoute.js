@@ -1,5 +1,5 @@
 import express from "express";
-import { verifyToken } from "../middleware/auth.js";
+import { requireGlobalAdmin, verifyToken } from "../middleware/auth.js";
 import {
   createRole,
   deleteRole,
@@ -10,10 +10,10 @@ import {
 
 const router = express.Router();
 
-router.post("/createRole", verifyToken, createRole);
+router.post("/createRole", verifyToken, requireGlobalAdmin, createRole);
 router.get("/getAllRoles", getAllRoles);
 router.get("/getRoleById/:id_role", getRoleById);
-router.put("/updateRole/:id", verifyToken, updateRole);
-router.delete("/deleteRole/:id", verifyToken, deleteRole);
+router.put("/updateRole/:id", verifyToken, requireGlobalAdmin, updateRole);
+router.delete("/deleteRole/:id", verifyToken, requireGlobalAdmin, deleteRole);
 
 export default router;

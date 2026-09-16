@@ -1,5 +1,9 @@
 import express from "express";
-import { verifyToken } from "../middleware/auth.js";
+import {
+  requireInternalUser,
+  requireTeamLeader,
+  verifyToken,
+} from "../middleware/auth.js";
 import multer from "multer";
 import {
   createRegistration,
@@ -8,6 +12,10 @@ import {
   getRegistrationByIdTeamLeader,
   updateRegistration,
 } from "../controllers/registrationController.js";
+import {
+  requireRegistrationParamAccess,
+  requireTeamLeaderParamAccess,
+} from "../middleware/resourceAccess.js";
 
 const router = express.Router();
 
@@ -19,21 +27,36 @@ const upload = multer({
 router.post(
   "/createRegistration",
   verifyToken,
+  requireTeamLeader,
   upload.fields([{ name: "payment_proof", maxCount: 1 }]),
   createRegistration,
 );
-router.get("/getAllRegistrations", verifyToken, getAllRegistrations);
+router.get(
+  "/getAllRegistrations",
+  verifyToken,
+  requireInternalUser,
+  getAllRegistrations,
+);
 router.get(
   "/getRegistrationByIdTeamLeader/:id_team_leader",
   verifyToken,
+  requireTeamLeaderParamAccess,
   getRegistrationByIdTeamLeader,
 );
 router.put(
   "/updateRegistration/:id",
   verifyToken,
+  requireInternalUser,
+  requireRegistrationParamAccess,
   upload.fields([{ name: "payment_proof", maxCount: 1 }]),
   updateRegistration,
 );
-router.delete("/deleteRegistration/:id", verifyToken, deleteRegistration);
+router.delete(
+  "/deleteRegistration/:id",
+  verifyToken,
+  requireInternalUser,
+  requireRegistrationParamAccess,
+  deleteRegistration,
+);
 
 export default router;

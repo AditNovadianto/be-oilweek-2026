@@ -1,4 +1,5 @@
 import DiscountCode from "../models/discountCodeModel.js";
+import { db } from "../config/db.js";
 
 // ======================================================
 // HELPER
@@ -208,17 +209,16 @@ export const getDiscountCodeById = async (req, res) => {
 // ======================================================
 
 export const inquiryDiscountCode = async (req, res) => {
-  const { code, id_team_leader, transaction_amount } = req.body;
+  const { code, transaction_amount } = req.body;
+  const id_team_leader = req.auth.actorId;
 
   try {
     if (
-      !code ||
-      id_team_leader === undefined ||
-      transaction_amount === undefined
+      !code || transaction_amount === undefined
     ) {
       return res.status(400).json({
         success: false,
-        message: "Code, team leader ID, and transaction amount are required",
+        message: "Code and transaction amount are required",
       });
     }
 
@@ -325,20 +325,19 @@ export const inquiryDiscountCode = async (req, res) => {
 // ======================================================
 
 export const redeemDiscountCode = async (req, res) => {
-  const { code, id_team_leader, id_registration, transaction_amount } =
-    req.body;
+  const { code, id_registration, transaction_amount } = req.body;
+  const id_team_leader = req.auth.actorId;
 
   try {
     if (
       !code ||
-      id_team_leader === undefined ||
       id_registration === undefined ||
       transaction_amount === undefined
     ) {
       return res.status(400).json({
         success: false,
         message:
-          "Code, team leader ID, registration ID, and transaction amount are required",
+          "Code, registration ID, and transaction amount are required",
       });
     }
 
@@ -366,6 +365,21 @@ export const redeemDiscountCode = async (req, res) => {
       return res.status(400).json({
         success: false,
         message: "Invalid transaction amount",
+      });
+    }
+
+    const [registrationRows] = await db.query(
+      `SELECT id_registration
+       FROM registration
+       WHERE id_registration = ? AND id_team_leader = ?
+       LIMIT 1`,
+      [registrationId, teamLeaderId],
+    );
+
+    if (registrationRows.length === 0) {
+      return res.status(403).json({
+        success: false,
+        message: "Forbidden",
       });
     }
 

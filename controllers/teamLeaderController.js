@@ -11,6 +11,7 @@ const signToken = (user) => {
   return jwt.sign(
     {
       sub: user.id_team_leader,
+      actor_type: "TEAM_LEADER",
       name_team_leader: user.name_team_leader,
       email_team_leader: user.email_team_leader,
     },
@@ -319,7 +320,9 @@ export const forgotPassword = async (req, res) => {
     );
 
     if (rows.length === 0) {
-      return res.status(404).json({ error: "Team Leader not found" });
+      return res.status(200).json({
+        message: "Reset password link has been sent to your email",
+      });
     }
 
     const user = rows[0];

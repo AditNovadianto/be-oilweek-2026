@@ -8,6 +8,7 @@ const signToken = (user) => {
   return jwt.sign(
     {
       sub: user.id_user,
+      actor_type: "USER",
       name_user: user.name_user,
       email_user: user.email_user,
     },
@@ -136,7 +137,9 @@ export const forgotPassword = async (req, res) => {
     );
 
     if (rows.length === 0) {
-      return res.status(404).json({ error: "User not found" });
+      return res.status(200).json({
+        message: "Reset password link has been sent to your email",
+      });
     }
 
     const user = rows[0];

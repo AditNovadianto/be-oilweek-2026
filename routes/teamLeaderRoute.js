@@ -8,7 +8,11 @@ import {
   uploadProfileController,
 } from "../controllers/teamLeaderController.js";
 import multer from "multer";
-import { verifyToken } from "../middleware/auth.js";
+import {
+  requireInternalUser,
+  requireTeamLeader,
+  verifyToken,
+} from "../middleware/auth.js";
 
 const router = express.Router();
 
@@ -19,10 +23,16 @@ const upload = multer({
 
 router.post("/signUpTeamLeader", signUp);
 router.post("/signInTeamLeader", signIn);
-router.get("/getAllTeamLeaders", verifyToken, getAllTeamLeaders);
+router.get(
+  "/getAllTeamLeaders",
+  verifyToken,
+  requireInternalUser,
+  getAllTeamLeaders,
+);
 router.put(
   "/team-leader/profile/upload",
   verifyToken,
+  requireTeamLeader,
   upload.fields([
     { name: "twibbon", maxCount: 1 },
     { name: "following_instagram", maxCount: 1 },

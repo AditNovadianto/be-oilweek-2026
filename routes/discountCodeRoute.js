@@ -1,5 +1,9 @@
 import express from "express";
-import { verifyToken } from "../middleware/auth.js";
+import {
+  requireGlobalAdmin,
+  requireTeamLeader,
+  verifyToken,
+} from "../middleware/auth.js";
 
 import {
   createDiscountCode,
@@ -13,18 +17,53 @@ import {
 
 const router = express.Router();
 
-router.post("/createDiscountCode", verifyToken, createDiscountCode);
+router.post(
+  "/createDiscountCode",
+  verifyToken,
+  requireGlobalAdmin,
+  createDiscountCode,
+);
 
-router.get("/getDiscountCodes", verifyToken, getDiscountCodes);
+router.get(
+  "/getDiscountCodes",
+  verifyToken,
+  requireGlobalAdmin,
+  getDiscountCodes,
+);
 
-router.get("/getDiscountCodeById/:id", verifyToken, getDiscountCodeById);
+router.get(
+  "/getDiscountCodeById/:id",
+  verifyToken,
+  requireGlobalAdmin,
+  getDiscountCodeById,
+);
 
-router.post("/inquiryDiscountCode", verifyToken, inquiryDiscountCode);
+router.post(
+  "/inquiryDiscountCode",
+  verifyToken,
+  requireTeamLeader,
+  inquiryDiscountCode,
+);
 
-router.post("/redeemDiscountCode", verifyToken, redeemDiscountCode);
+router.post(
+  "/redeemDiscountCode",
+  verifyToken,
+  requireTeamLeader,
+  redeemDiscountCode,
+);
 
-router.put("/updateDiscountCode/:id", verifyToken, updateDiscountCode);
+router.put(
+  "/updateDiscountCode/:id",
+  verifyToken,
+  requireGlobalAdmin,
+  updateDiscountCode,
+);
 
-router.delete("/deleteDiscountCode/:id", verifyToken, deleteDiscountCode);
+router.delete(
+  "/deleteDiscountCode/:id",
+  verifyToken,
+  requireGlobalAdmin,
+  deleteDiscountCode,
+);
 
 export default router;

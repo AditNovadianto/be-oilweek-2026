@@ -92,6 +92,63 @@ export const updateStageSubmission = async (req, res) => {
   const { id } = req.params;
 
   try {
+    const updates = {};
+
+    if (req.auth.actorType === "TEAM_LEADER") {
+      if (
+        req.body.submission_status !== undefined ||
+        req.body.status_submission !== undefined ||
+        req.body.submission_note !== undefined ||
+        req.body.score !== undefined ||
+        req.body.feedback !== undefined
+      ) {
+        return res.status(403).json({
+          success: false,
+          message: "Forbidden",
+        });
+      }
+
+      if (req.body.submission_title !== undefined) {
+        updates.submission_title = req.body.submission_title;
+      }
+
+      if (!req.file && req.body.submission_link !== undefined) {
+        updates.submission_link = req.body.submission_link;
+      }
+    } else {
+      if (
+        req.file ||
+        req.body.id_stage !== undefined ||
+        req.body.id_team !== undefined ||
+        req.body.submission_title !== undefined ||
+        req.body.submission_link !== undefined
+      ) {
+        return res.status(403).json({
+          success: false,
+          message: "Forbidden",
+        });
+      }
+
+      const submissionStatus =
+        req.body.submission_status ?? req.body.status_submission;
+
+      if (submissionStatus !== undefined) {
+        updates.submission_status = submissionStatus;
+      }
+
+      if (req.body.submission_note !== undefined) {
+        updates.submission_note = req.body.submission_note;
+      }
+
+      if (req.body.score !== undefined) {
+        updates.score = req.body.score;
+      }
+
+      if (req.body.feedback !== undefined) {
+        updates.feedback = req.body.feedback;
+      }
+    }
+
     if (req.file) {
       const extension = path.extname(req.file.originalname).toLowerCase();
 
@@ -107,12 +164,19 @@ export const updateStageSubmission = async (req, res) => {
         publicId: `${Date.now()}-${safeFileName}${extension}`,
       });
 
-      req.body.submission_link = submissionUrl;
+      updates.submission_link = submissionUrl;
+    }
+
+    if (Object.keys(updates).length === 0) {
+      return res.status(400).json({
+        success: false,
+        message: "No fields to update",
+      });
     }
 
     const updatedSubmission = await StageSubmission.findByIdAndUpdate(
       id,
-      req.body,
+      updates,
       {
         returnDocument: "after",
         runValidators: true,
