@@ -5,6 +5,7 @@ import { uploadToCloudinary } from "../utils/uploadCloudinary.js";
 import { getTeamById } from "../models/teamModel.js";
 import { getAllMemberById } from "../models/memberModel.js";
 import { transporter } from "../utils/mailer.js";
+import { getCompetitionScope } from "../middleware/resourceAccess.js";
 
 const signToken = (user) => {
   if (!process.env.JWT_SECRET) throw new Error("JWT_SECRET is not set");
@@ -184,9 +185,33 @@ export const signIn = async (req, res) => {
 
 export const getAllTeamLeaders = async (req, res) => {
   try {
-    const [rows] = await db.query(
-      "SELECT id_team_leader, name_team_leader, major_team_leader, email_team_leader, phone_number_team_leader, student_id_card, twibbon, following_instagram, following_linkedin, following_tiktok, instagram_story, repost_competition_instagram, id_platform FROM team_leader",
-    );
+    const idCompetition = getCompetitionScope(req.auth);
+
+    const [rows] =
+      idCompetition === null
+        ? await db.query(
+            "SELECT id_team_leader, name_team_leader, major_team_leader, email_team_leader, phone_number_team_leader, student_id_card, twibbon, following_instagram, following_linkedin, following_tiktok, instagram_story, repost_competition_instagram, id_platform FROM team_leader",
+          )
+        : await db.query(
+            `SELECT DISTINCT team_leader.id_team_leader,
+                    team_leader.name_team_leader,
+                    team_leader.major_team_leader,
+                    team_leader.email_team_leader,
+                    team_leader.phone_number_team_leader,
+                    team_leader.student_id_card,
+                    team_leader.twibbon,
+                    team_leader.following_instagram,
+                    team_leader.following_linkedin,
+                    team_leader.following_tiktok,
+                    team_leader.instagram_story,
+                    team_leader.repost_competition_instagram,
+                    team_leader.id_platform
+             FROM team_leader
+             INNER JOIN registration
+               ON registration.id_team_leader = team_leader.id_team_leader
+             WHERE registration.id_competition = ?`,
+            [idCompetition],
+          );
 
     return res.status(200).json({ teamLeaders: rows });
   } catch (err) {

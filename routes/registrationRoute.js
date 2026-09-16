@@ -12,6 +12,10 @@ import {
   getRegistrationByIdTeamLeader,
   updateRegistration,
 } from "../controllers/registrationController.js";
+import {
+  requireRegistrationParamAccess,
+  requireTeamLeaderParamAccess,
+} from "../middleware/resourceAccess.js";
 
 const router = express.Router();
 
@@ -36,12 +40,14 @@ router.get(
 router.get(
   "/getRegistrationByIdTeamLeader/:id_team_leader",
   verifyToken,
+  requireTeamLeaderParamAccess,
   getRegistrationByIdTeamLeader,
 );
 router.put(
   "/updateRegistration/:id",
   verifyToken,
   requireInternalUser,
+  requireRegistrationParamAccess,
   upload.fields([{ name: "payment_proof", maxCount: 1 }]),
   updateRegistration,
 );
@@ -49,6 +55,7 @@ router.delete(
   "/deleteRegistration/:id",
   verifyToken,
   requireInternalUser,
+  requireRegistrationParamAccess,
   deleteRegistration,
 );
 

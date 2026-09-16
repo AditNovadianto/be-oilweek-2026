@@ -1,5 +1,39 @@
 import mongoose from "mongoose";
 import CompetitionStageInfo from "../models/competitionStageInfoModel.js";
+import CompetitionStage from "../models/competitionStageModel.js";
+import { db } from "../config/db.js";
+import { isGlobalAdmin } from "../middleware/resourceAccess.js";
+
+const getTeamLeaderContext = async (idTeamLeader) => {
+  const [rows] = await db.query(
+    `SELECT team.id_team, registration.id_competition
+     FROM team
+     LEFT JOIN registration
+       ON registration.id_team_leader = team.id_team_leader
+     WHERE team.id_team_leader = ?`,
+    [idTeamLeader],
+  );
+
+  if (rows.length === 0) {
+    return { idTeam: null, competitionIds: [] };
+  }
+
+  return {
+    idTeam: rows[0].id_team,
+    competitionIds: rows
+      .map((row) => row.id_competition)
+      .filter((id) => id !== null && id !== undefined),
+  };
+};
+
+export const filterPickupInformation = (stageInfo, idTeam) => {
+  return {
+    ...stageInfo,
+    team_pickup_information: (stageInfo.team_pickup_information || []).filter(
+      (pickup) => Number(pickup.team_id) === Number(idTeam),
+    ),
+  };
+};
 
 const handleControllerError = (res, error, defaultMessage) => {
   console.error(defaultMessage, error);
@@ -111,9 +145,40 @@ export const createCompetitionStageInfo = async (req, res) => {
 // Read
 export const getAllCompetitionStageInfos = async (req, res) => {
   try {
-    const competitionStageInfos = await CompetitionStageInfo.find()
+    let stageFilter = {};
+    let idTeam = null;
+
+    if (!isGlobalAdmin(req.auth)) {
+      let competitionIds = [];
+
+      if (req.auth.actorType === "USER") {
+        competitionIds = [req.auth.competitionId];
+      } else {
+        const context = await getTeamLeaderContext(req.auth.actorId);
+        competitionIds = context.competitionIds;
+        idTeam = context.idTeam;
+      }
+
+      const stages = await CompetitionStage.find({
+        id_competition: { $in: competitionIds },
+      })
+        .select("_id")
+        .lean();
+
+      stageFilter = {
+        id_stage: { $in: stages.map((stage) => String(stage._id)) },
+      };
+    }
+
+    let competitionStageInfos = await CompetitionStageInfo.find(stageFilter)
       .sort({ createdAt: -1 })
       .lean();
+
+    if (req.auth.actorType === "TEAM_LEADER") {
+      competitionStageInfos = competitionStageInfos.map((stageInfo) =>
+        filterPickupInformation(stageInfo, idTeam),
+      );
+    }
 
     return res.status(200).json({
       success: true,
@@ -141,7 +206,7 @@ export const getCompetitionStageInfoByStageId = async (req, res) => {
       });
     }
 
-    const competitionStageInfo = await CompetitionStageInfo.findOne({
+    let competitionStageInfo = await CompetitionStageInfo.findOne({
       id_stage: id_stage.trim(),
     }).lean();
 
@@ -151,6 +216,14 @@ export const getCompetitionStageInfoByStageId = async (req, res) => {
         message:
           "Informasi tambahan untuk competition stage tersebut tidak ditemukan",
       });
+    }
+
+    if (req.auth.actorType === "TEAM_LEADER") {
+      const context = await getTeamLeaderContext(req.auth.actorId);
+      competitionStageInfo = filterPickupInformation(
+        competitionStageInfo,
+        context.idTeam,
+      );
     }
 
     return res.status(200).json({
@@ -196,6 +269,90 @@ export const updateCompetitionStageInfo = async (req, res) => {
       venue_information,
       additional_notes,
     } = req.body;
+
+    if (req.auth.actorType === "TEAM_LEADER") {
+      const forbiddenFields = [
+        "id_stage",
+        "whatsapp_group",
+        "accepts_pickup",
+        "venue_information",
+        "additional_notes",
+      ];
+
+      if (forbiddenFields.some((field) => req.body[field] !== undefined)) {
+        return res.status(403).json({
+          success: false,
+          message: "Forbidden",
+        });
+      }
+
+      if (!Array.isArray(team_pickup_information)) {
+        return res.status(400).json({
+          success: false,
+          message: "team_pickup_information harus berupa array",
+        });
+      }
+
+      if (!competitionStageInfo.accepts_pickup) {
+        return res.status(400).json({
+          success: false,
+          message: "Stage ini tidak menerima informasi penjemputan",
+        });
+      }
+
+      const context = await getTeamLeaderContext(req.auth.actorId);
+
+      if (!context.idTeam) {
+        return res.status(403).json({
+          success: false,
+          message: "Forbidden",
+        });
+      }
+
+      const incomingPickup =
+        team_pickup_information.find(
+          (pickup) => Number(pickup.team_id) === Number(context.idTeam),
+        ) ??
+        (team_pickup_information.length === 1
+          ? team_pickup_information[0]
+          : null);
+
+      if (!incomingPickup) {
+        return res.status(400).json({
+          success: false,
+          message: "Informasi penjemputan team wajib diisi",
+        });
+      }
+
+      const existingPickup = competitionStageInfo.team_pickup_information.find(
+        (pickup) => Number(pickup.team_id) === Number(context.idTeam),
+      );
+
+      const otherPickups = competitionStageInfo.team_pickup_information.filter(
+        (pickup) => Number(pickup.team_id) !== Number(context.idTeam),
+      );
+
+      competitionStageInfo.team_pickup_information = [
+        ...otherPickups,
+        {
+          team_id: String(context.idTeam),
+          location_name: incomingPickup.location_name,
+          address: incomingPickup.address,
+          maps_url: incomingPickup.maps_url,
+          pickup_time: incomingPickup.pickup_time,
+          notes: incomingPickup.notes,
+          status: existingPickup?.status || "PENDING",
+        },
+      ];
+
+      const updatedCompetitionStageInfo = await competitionStageInfo.save();
+
+      return res.status(200).json({
+        success: true,
+        message: "Competition stage info berhasil diperbarui",
+        data: updatedCompetitionStageInfo,
+      });
+    }
 
     if (id_stage !== undefined) {
       if (typeof id_stage !== "string" || !id_stage.trim()) {

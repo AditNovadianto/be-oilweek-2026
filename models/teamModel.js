@@ -21,9 +21,21 @@ export async function createTeam(
 }
 
 // Read
-export async function getAllTeams() {
+export async function getAllTeams(idCompetition = null) {
   try {
-    const [rows] = await db.query("SELECT * FROM team");
+    if (idCompetition === null) {
+      const [rows] = await db.query("SELECT * FROM team");
+      return rows;
+    }
+
+    const [rows] = await db.query(
+      `SELECT DISTINCT team.*
+       FROM team
+       INNER JOIN registration
+         ON registration.id_team_leader = team.id_team_leader
+       WHERE registration.id_competition = ?`,
+      [idCompetition],
+    );
 
     return rows;
   } catch (error) {

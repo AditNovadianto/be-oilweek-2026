@@ -1,6 +1,15 @@
 import jwt from "jsonwebtoken";
 import { db } from "../config/db.js";
 
+const competitionAdminRoles = new Map([
+  [2, { name: "ADMIN PETROSMART", pattern: "%PETROSMART%" }],
+  [3, { name: "ADMIN PAPER & POSTER", pattern: "%PAPER%POSTER%" }],
+  [4, { name: "ADMIN BUSINESS CASE", pattern: "%BUSINESS%CASE%" }],
+  [5, { name: "ADMIN MUD INNOVATION", pattern: "%MUD%INNOVATION%" }],
+  [6, { name: "ADMIN WELL STIMULATION", pattern: "%WELL%STIMULATION%" }],
+  [7, { name: "ADMIN CASE STUDY", pattern: "%CASE%STUDY%" }],
+]);
+
 export const getActorType = (decoded) => {
   if (decoded.actor_type === "USER" || decoded.actor_type === "TEAM_LEADER") {
     return decoded.actor_type;
@@ -15,6 +24,28 @@ export const getActorType = (decoded) => {
   }
 
   return null;
+};
+
+export const resolveCompetitionScope = async (
+  roleId,
+  roleName,
+  query = db.query.bind(db),
+) => {
+  const role = competitionAdminRoles.get(Number(roleId));
+
+  if (role?.name !== String(roleName).trim().toUpperCase()) {
+    return null;
+  }
+
+  const [rows] = await query(
+    `SELECT id_competition
+     FROM competition
+     WHERE UPPER(name_competition) LIKE ?
+     ORDER BY id_competition`,
+    [role.pattern],
+  );
+
+  return rows.length === 1 ? rows[0].id_competition : null;
 };
 
 export const resolveActor = async (
@@ -37,11 +68,18 @@ export const resolveActor = async (
       return null;
     }
 
+    const competitionId = await resolveCompetitionScope(
+      rows[0].id_role,
+      rows[0].name_role,
+      query,
+    );
+
     return {
       actorType,
       actorId: rows[0].id_user,
       roleId: rows[0].id_role,
       roleName: rows[0].name_role,
+      competitionId,
     };
   }
 
@@ -63,6 +101,7 @@ export const resolveActor = async (
       actorId: rows[0].id_team_leader,
       roleId: null,
       roleName: null,
+      competitionId: null,
     };
   }
 
@@ -109,7 +148,13 @@ export async function verifyToken(req, res, next) {
 }
 
 export function requireInternalUser(req, res, next) {
-  if (req.auth?.actorType !== "USER") {
+  const isGlobalAdmin = Number(req.auth?.roleId) === 1;
+  const hasCompetitionScope = req.auth?.competitionId != null;
+
+  if (
+    req.auth?.actorType !== "USER" ||
+    (!isGlobalAdmin && !hasCompetitionScope)
+  ) {
     return res.status(403).json({ error: "Forbidden" });
   }
 

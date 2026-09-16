@@ -1,4 +1,5 @@
 import * as memberModel from "../models/memberModel.js";
+import { getCompetitionScope } from "../middleware/resourceAccess.js";
 
 // Create
 export const createMember = async (req, res) => {
@@ -61,7 +62,9 @@ export const createMember = async (req, res) => {
 // Read
 export const getAllMembers = async (req, res) => {
   try {
-    const members = await memberModel.getAllMembers();
+    const members = await memberModel.getAllMembers(
+      getCompetitionScope(req.auth),
+    );
 
     return res.status(200).json({ members });
   } catch (error) {

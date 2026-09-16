@@ -1,23 +1,37 @@
 import * as registrationModel from "../models/registrationModel.js";
+import { getCompetitionScope } from "../middleware/resourceAccess.js";
 
 // Create
 export const createRegistration = async (req, res) => {
-  const {
-    category_registration,
-    status_registration,
-    payment_status,
-    id_team_leader,
-    id_competition,
-  } = req.body;
+  const { category_registration, id_competition } = req.body;
+
+  const id_team_leader = req.auth.actorId;
 
   const { payment_proof } = req.files;
 
   try {
+    const eligibility = await registrationModel.getRegistrationEligibility(
+      id_team_leader,
+      id_competition,
+    );
+
+    if (!eligibility.hasTeam || eligibility.memberCount < 1) {
+      return res.status(422).json({
+        error: "Registration requires a team with at least one member",
+      });
+    }
+
+    if (eligibility.hasRegistration) {
+      return res.status(409).json({
+        error: "Team leader is already registered for this competition",
+      });
+    }
+
     const registrationId = await registrationModel.createRegistration(
       category_registration,
-      status_registration,
+      "ACTIVE",
       payment_proof,
-      payment_status,
+      "PENDING",
       id_team_leader,
       id_competition,
     );
@@ -35,7 +49,9 @@ export const createRegistration = async (req, res) => {
 // Read
 export const getAllRegistrations = async (req, res) => {
   try {
-    const registrations = await registrationModel.getAllRegistrations();
+    const registrations = await registrationModel.getAllRegistrations(
+      getCompetitionScope(req.auth),
+    );
 
     res.status(200).json({ registrations });
   } catch (error) {
@@ -49,7 +65,10 @@ export const getRegistrationByIdTeamLeader = async (req, res) => {
 
   try {
     const registration =
-      await registrationModel.getRegistrationByIdTeamLeader(id_team_leader);
+      await registrationModel.getRegistrationByIdTeamLeader(
+        id_team_leader,
+        getCompetitionScope(req.auth),
+      );
 
     if (!registration) {
       return res.status(404).json({ error: "Registration not found" });

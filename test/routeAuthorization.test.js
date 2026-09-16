@@ -5,6 +5,10 @@ import competitionRoute from "../routes/competitionRoute.js";
 import discountCodeRoute from "../routes/discountCodeRoute.js";
 import registrationRoute from "../routes/registrationRoute.js";
 import teamLeaderRoute from "../routes/teamLeaderRoute.js";
+import teamRoute from "../routes/teamRoute.js";
+import memberRoute from "../routes/memberRoute.js";
+import competitionStageRoute from "../routes/competitionStageRoute.js";
+import stageSubmissionRoute from "../routes/stageSubmissionRoute.js";
 
 const getHandlers = (router, method, path) => {
   const layer = router.stack.find(
@@ -56,8 +60,68 @@ test("aggregate PII and payment updates require internal users", () => {
     [
       "verifyToken",
       "requireInternalUser",
+      "requireRegistrationParamAccess",
       "multerMiddleware",
       "updateRegistration",
     ],
+  );
+});
+
+test("team and member lookups enforce resource ownership", () => {
+  assert.deepEqual(
+    getHandlers(teamRoute, "get", "/getTeamById/:id_team_leader"),
+    ["verifyToken", "requireTeamLeaderParamAccess", "getTeamById"],
+  );
+  assert.deepEqual(
+    getHandlers(memberRoute, "get", "/getAllMemberById/:id_team"),
+    ["verifyToken", "requireTeamRouteParamAccess", "getAllMemberById"],
+  );
+  assert.deepEqual(getHandlers(memberRoute, "delete", "/deleteMember/:id"), [
+    "verifyToken",
+    "requireMemberParamAccess",
+    "deleteMember",
+  ]);
+});
+
+test("stage administration enforces competition scope", () => {
+  assert.deepEqual(
+    getHandlers(
+      competitionStageRoute,
+      "get",
+      "/getStagesByIdCompetition/:id_competition",
+    ),
+    [
+      "verifyToken",
+      "requireCompetitionParamAccess",
+      "getCompetitionStagesByIdCompetition",
+    ],
+  );
+  assert.deepEqual(
+    getHandlers(competitionStageRoute, "put", "/updateStage/:id"),
+    [
+      "verifyToken",
+      "requireInternalUser",
+      "requireStageParamAccess",
+      "requireCompetitionBodyAccess",
+      "updateCompetitionStage",
+    ],
+  );
+});
+
+test("submission access resolves both stage and team ownership", () => {
+  assert.deepEqual(
+    getHandlers(stageSubmissionRoute, "post", "/createStageSubmission"),
+    [
+      "verifyToken",
+      "requireTeamLeader",
+      "multerMiddleware",
+      "requireStageBodyAccess",
+      "requireTeamBodyAccess",
+      "createStageSubmission",
+    ],
+  );
+  assert.deepEqual(
+    getHandlers(stageSubmissionRoute, "delete", "/deleteStageSubmission/:id"),
+    ["verifyToken", "requireSubmissionParamAccess", "deleteStageSubmission"],
   );
 });

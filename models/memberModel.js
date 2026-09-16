@@ -95,9 +95,23 @@ export async function createMember(
 }
 
 // Read
-export async function getAllMembers() {
+export async function getAllMembers(idCompetition = null) {
   try {
-    const [rows] = await db.query("SELECT * FROM member");
+    if (idCompetition === null) {
+      const [rows] = await db.query("SELECT * FROM member");
+      return rows;
+    }
+
+    const [rows] = await db.query(
+      `SELECT DISTINCT member.*
+       FROM member
+       INNER JOIN team ON team.id_team = member.id_team
+       INNER JOIN registration
+         ON registration.id_team_leader = team.id_team_leader
+       WHERE registration.id_competition = ?`,
+      [idCompetition],
+    );
+
     return rows;
   } catch (error) {
     console.error("Error fetching members:", error);

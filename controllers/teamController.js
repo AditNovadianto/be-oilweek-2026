@@ -1,11 +1,18 @@
 import * as teamModel from "../models/teamModel.js";
+import { getCompetitionScope } from "../middleware/resourceAccess.js";
 
 // Create
 export const createTeam = async (req, res) => {
-  const { team_name, institution, international_team, id_team_leader } =
-    req.body;
+  const { team_name, institution, international_team } = req.body;
+  const id_team_leader = req.auth.actorId;
 
   try {
+    const existingTeam = await teamModel.getTeamById(id_team_leader);
+
+    if (existingTeam) {
+      return res.status(409).json({ error: "Team already exists" });
+    }
+
     const teamId = await teamModel.createTeam(
       team_name,
       institution,
@@ -30,7 +37,7 @@ export const createTeam = async (req, res) => {
 // Read
 export const getAllTeams = async (req, res) => {
   try {
-    const teams = await teamModel.getAllTeams();
+    const teams = await teamModel.getAllTeams(getCompetitionScope(req.auth));
 
     return res.status(200).json({ teams });
   } catch (error) {
